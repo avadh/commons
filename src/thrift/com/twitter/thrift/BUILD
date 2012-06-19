@@ -20,6 +20,11 @@ java_thrift_library(name = 'thrift',
     name = 'service-thrift',
     repo = pants('build-support/commons/ivy:public'),
   ),
+  excludes = [
+    exclude(org = 'javax.jms'),
+    exclude(org = 'com.sun.jdmk'),
+    exclude(org = 'com.sun.jmx'),
+  ],
   sources = globs('*.thrift')
 )
 
