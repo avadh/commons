@@ -322,9 +322,23 @@ jar_library(name = 'libthrift-0.5.0',
             ]
            )
 
+jar_library(name = 'libthrift-0.8.0',
+            dependencies = [
+              jar(org = 'org.apache.thrift', name = 'libthrift', rev = '0.8.0'),
+            ]
+           )
+
 jar_library(name = 'thrift-0.5',
             dependencies = [
               pants(':libthrift-0.5.0'),
+              pants(':slf4j-api'),
+              pants(':slf4j-jdk14'), # need a concrete slf4j backend at runtime
+            ]
+           )
+
+jar_library(name = 'thrift-0.8',
+            dependencies = [
+              pants(':libthrift-0.8.0'),
               pants(':slf4j-api'),
               pants(':slf4j-jdk14'), # need a concrete slf4j backend at runtime
             ]
@@ -351,6 +365,9 @@ jar_library(name = 'thrift-0.7.0',
 
 jar_library(name = 'thrift',
             dependencies = [ pants(':thrift-0.5') ])
+
+jar_library(name = 'thrift-0-8',
+            dependencies = [ pants(':thrift-0.8') ])
 
 jar_library(name = 'twitter4j',
             dependencies = [

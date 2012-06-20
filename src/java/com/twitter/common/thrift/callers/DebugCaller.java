@@ -49,13 +49,13 @@ public class DebugCaller extends CallerDecorator {
   @Override
   public Object call(final Method method, final Object[] args,
       @Nullable AsyncMethodCallback callback, @Nullable Amount<Long, Time> connectTimeoutOverride)
-      throws Throwable {
+      throws Throwable, Exception	{ // avadh: added 'Exception'
     ResultCapture capture = new ResultCapture() {
       @Override public void success() {
         // No-op.
       }
 
-      @Override public boolean fail(Throwable t) {
+      @Override public boolean fail(Exception t) {  // avadh: changed from 'Throwable'
         StringBuilder message = new StringBuilder("Thrift call failed: ");
         message.append(method.getName()).append("(");
         ARG_JOINER.appendTo(message, args);
@@ -68,7 +68,7 @@ public class DebugCaller extends CallerDecorator {
 
     try {
       return invoke(method, args, callback, capture, connectTimeoutOverride);
-    } catch (Throwable t) {
+    } catch (Exception t) { // avadh: changed from 'Throwable'
       capture.fail(t);
       throw t;
     }

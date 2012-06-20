@@ -25,7 +25,7 @@ java_library(name = 'thrift',
   dependencies = [
     pants('3rdparty:guava'),
     pants('3rdparty:jsr305'),
-    pants('3rdparty:thrift'),
+    pants('3rdparty:thrift-0-8'),
     pants('src/java/com/twitter/common/base'),
     pants('src/java/com/twitter/common/net:util'),
     pants('src/java/com/twitter/common/net:pool'),

@@ -43,7 +43,7 @@ public interface Caller {
    * @throws Throwable Exception, as prescribed by the method's contract.
    */
   public Object call(Method method, Object[] args, @Nullable AsyncMethodCallback callback,
-      @Nullable Amount<Long, Time> connectTimeoutOverride) throws Throwable;
+      @Nullable Amount<Long, Time> connectTimeoutOverride) throws Exception, Throwable; // avadh:added 'Exception'
 
   /**
    * Captures the result of a request, whether synchronous or asynchronous.  It should be expected
@@ -62,7 +62,7 @@ public interface Caller {
      * @return {@code true} if a wrapped callback should be notified of the failure,
      *    {@code false} otherwise.
      */
-    boolean fail(Throwable t);
+    boolean fail(Exception t) throws Throwable;
   }
 
   /**
@@ -92,11 +92,20 @@ public interface Caller {
       callbackTriggered();
     }
 
-    @Override public void onError(Throwable t) {
-      if (capture.fail(t)) {
-        wrapped.onError(t);
-        callbackTriggered();
-      }
+    @Override public void onError(Exception t) {
+      try
+			{
+				if (capture.fail(t))
+				{
+					wrapped.onError(t);
+					callbackTriggered();
+				}
+			}
+			catch (Throwable e)
+			{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
     }
   }
 }

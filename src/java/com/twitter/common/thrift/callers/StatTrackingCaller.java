@@ -71,7 +71,7 @@ public class StatTrackingCaller extends CallerDecorator {
 
   @Override
   public Object call(Method method, Object[] args, @Nullable AsyncMethodCallback callback,
-      @Nullable Amount<Long, Time> connectTimeoutOverride) throws Throwable {
+      @Nullable Amount<Long, Time> connectTimeoutOverride) throws Throwable, Exception	{ // avadh: added 'Exception' {
     final RequestTimer requestStats = stats.get(method);
     final long startTime = System.nanoTime();
 
@@ -81,7 +81,7 @@ public class StatTrackingCaller extends CallerDecorator {
             System.nanoTime() - startTime));
       }
 
-      @Override public boolean fail(Throwable t) {
+      @Override public boolean fail(Exception t) {	// avadh: changed from 'Throwable' to 'Exception'
         // TODO(John Sirois): the ruby client reconnects for timeouts too - this provides a natural
         // backoff mechanism - consider how to plumb something similar.
         if (t instanceof TTimeoutException || t instanceof TimeoutException) {

@@ -44,6 +44,7 @@ import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TNonblockingServerSocket;
 import org.apache.thrift.transport.TServerSocket;
+import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
 
@@ -80,7 +81,8 @@ public abstract class ThriftServer {
   public static final ExceptionalFunction<ServerSetup, TServer, TTransportException>
       THREADPOOL_SERVER = new ExceptionalFunction<ServerSetup, TServer, TTransportException>() {
         @Override public TServer apply(ServerSetup setup) throws TTransportException {
-          TThreadPoolServer.Options options = new TThreadPoolServer.Options();
+          TServerTransport serverTransport = new TServerSocket(setup.port);	// avadh: added serverTransaport for creating TThreadPoolServer.Args
+          TThreadPoolServer.Args options = new TThreadPoolServer.Args(serverTransport);
           if (setup.getNumThreads() > 0) {
             options.minWorkerThreads = setup.getNumThreads();
             options.maxWorkerThreads = setup.getNumThreads();
@@ -115,8 +117,9 @@ public abstract class ThriftServer {
           }
 
           TServerSocket socket = setup.isMonitored() ? monitoredSocket : unmonitoredSocket;
-          return new TThreadPoolServer(processor, socket, transportFactory, transportFactory,
-              setup.getProtoFactory(), setup.getProtoFactory(), options);
+       // avadh: processorFactory is needed for creating a thrift server in 0.8.0 version
+       	  options.processorFactory(new TProcessorFactory(processor));
+          return new TThreadPoolServer(options);
         }
       };
   /**
@@ -133,17 +136,17 @@ public abstract class ThriftServer {
           setup.setSocket(getServerSocketFor(socket));
 
           // just to grab defaults
-          THsHaServer.Options options = new THsHaServer.Options();
+          THsHaServer.Args options = new THsHaServer.Args(socket);
           if (setup.getNumThreads() > 0) {
-            options.workerThreads = setup.getNumThreads();
+            options.workerThreads(setup.getNumThreads());
           }
 
           // default queue size to num threads:  max response time becomes double avg service time
           final BlockingQueue<Runnable> queue =
             new ArrayBlockingQueue<Runnable>(setup.getQueueSize() > 0 ? setup.getQueueSize()
-                : options.workerThreads);
-          final ThreadPoolExecutor invoker = new ThreadPoolExecutor(options.workerThreads,
-              options.workerThreads, options.stopTimeoutVal, options.stopTimeoutUnit, queue);
+                : options.getWorkerThreads());
+          final ThreadPoolExecutor invoker = new ThreadPoolExecutor(options.getWorkerThreads(),
+              options.getWorkerThreads(), options.getStopTimeoutVal(), options.getStopTimeoutUnit(), queue);
 
           final String serverName = (setup.getName() != null ? setup.getName() : "no-name");
           Stats.export(new StatImpl<Integer>(serverName + "_thrift_server_active_threads") {
@@ -152,11 +155,9 @@ public abstract class ThriftServer {
           Stats.export(new StatImpl<Integer>(serverName + "_thrift_server_queue_size") {
             @Override public Integer read() { return queue.size(); }
           });
-
-          return new THsHaServer(new TProcessorFactory(setup.getProcessor()), socket,
-              new TFramedTransport.Factory(),
-              setup.getProtoFactory(), setup.getProtoFactory(), invoker,
-              new TNonblockingServer.Options());
+       // avadh: processorFactory is needed for creating a thrift server in 0.8.0 version
+       	options.processorFactory(new TProcessorFactory(setup.processor));
+       	return new THsHaServer(options);
         }
       };
 

@@ -51,7 +51,7 @@ abstract class CallerDecorator implements Caller {
    */
   protected final Object invoke(Method method, Object[] args,
       @Nullable AsyncMethodCallback callback, @Nullable final ResultCapture capture,
-      @Nullable Amount<Long, Time> connectTimeoutOverride) throws Throwable {
+      @Nullable Amount<Long, Time> connectTimeoutOverride) throws Throwable, Exception {	// added 'Exception' 
 
     // Swap the wrapped callback out for ours.
     if (callback != null) {
@@ -63,7 +63,7 @@ abstract class CallerDecorator implements Caller {
       if (callback == null && capture != null) capture.success();
 
       return result;
-    } catch (Throwable t) {
+    } catch (Exception t) { // changed from 'Throwable'
       // We allow this one to go to both sync and async captures.
       if (callback != null) {
         callback.onError(t);

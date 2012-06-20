@@ -73,7 +73,7 @@ public class ThriftCaller<T> implements Caller {
 
   @Override
   public Object call(Method method, Object[] args, @Nullable AsyncMethodCallback callback,
-      @Nullable Amount<Long, Time> connectTimeoutOverride) throws Throwable {
+      @Nullable Amount<Long, Time> connectTimeoutOverride) throws Throwable, Exception {	// avadh: added 'Exception'
 
     final Connection<TTransport, InetSocketAddress> connection = getConnection(connectTimeoutOverride);
     final long startNanos = System.nanoTime();
@@ -88,7 +88,7 @@ public class ThriftCaller<T> implements Caller {
         }
       }
 
-      @Override public boolean fail(Throwable t) {
+      @Override public boolean fail(Exception t) {
         if (debug) {
           LOG.warning(String.format("Call to endpoint: %s failed: %s", connection, t));
         }
@@ -107,7 +107,7 @@ public class ThriftCaller<T> implements Caller {
   }
 
   private static Object invokeMethod(Object target, Method method, Object[] args,
-      AsyncMethodCallback callback, final ResultCapture capture) throws Throwable {
+      AsyncMethodCallback callback, final ResultCapture capture) throws Throwable, Exception {
 
     // Swap the wrapped callback out for ours.
     if (callback != null) {
@@ -126,11 +126,11 @@ public class ThriftCaller<T> implements Caller {
     } catch (InvocationTargetException t) {
       // We allow this one to go to both sync and async captures.
       if (callback != null) {
-        callback.onError(t.getCause());
+        callback.onError(t);
         return null;
       } else {
-        capture.fail(t.getCause());
-        throw t.getCause();
+        capture.fail(t);
+        throw t;
       }
     }
   }

@@ -352,7 +352,7 @@ public class Thrift<T> {
 
     final InvocationHandler invocationHandler = new InvocationHandler() {
       @Override
-      public Object invoke(Object o, Method method, Object[] args) throws Throwable {
+      public Object invoke(Object o, Method method, Object[] args) throws Throwable, Exception {
         AsyncMethodCallback callback = null;
         if (args != null && async) {
           List<Object> argsList = Lists.newArrayList(args);

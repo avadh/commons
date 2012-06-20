@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
+import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nullable;
 
@@ -94,17 +95,17 @@ public class RetryingCaller extends CallerDecorator {
 
   @Override public Object call(final Method method, final Object[] args,
       @Nullable final AsyncMethodCallback callback,
-      @Nullable final Amount<Long, Time> connectTimeoutOverride) throws Throwable {
+      @Nullable final Amount<Long, Time> connectTimeoutOverride) throws Throwable, Exception {
     final AtomicLong retryCounter = stats.get(method);
     final AtomicInteger attempts = new AtomicInteger();
-    final List<Throwable> exceptions = Lists.newArrayList();
+    final List<Exception> exceptions = Lists.newArrayList();
 
     final ResultCapture capture = new ResultCapture() {
       @Override public void success() {
         // No-op.
       }
 
-      @Override public boolean fail(Throwable t) {
+      @Override public boolean fail(Exception t) throws Throwable {	// avadh: changed from "public boolean fail(Throwable t)"
         if (!isRetryable(t)) {
           if (debug) {
             LOG.warning(String.format(
@@ -131,7 +132,7 @@ public class RetryingCaller extends CallerDecorator {
               // override connect timeout in ThriftCaller to prevent blocking for a connection
               // for async retries (since this is within the callback in the selector thread)
               invoke(method, args, callback, this, NONBLOCKING_TIMEOUT);
-            } catch (Throwable throwable) {
+            } catch (Exception throwable) {	// avadh: changed 'Throwable' to 'Exception'
               return fail(throwable);
             }
           }
@@ -146,9 +147,9 @@ public class RetryingCaller extends CallerDecorator {
       try {
         // If this is an async call, the looping will be handled within the capture.
         return invoke(method, args, callback, capture, connectTimeoutOverride);
-      } catch (Throwable t) {
+      } catch (Exception t) {	// avadh: changed 'Throwable' to 'Exception'
         if (!isRetryable(t)) {
-          Throwable propagated = t;
+          Exception propagated = t;	// avadh: changed 'Throwable' to 'Exception'
 
           if (!exceptions.isEmpty() && (t instanceof TResourceExhaustedException)) {
             // If we've been trucking along through retries that have had remote call failures
@@ -170,7 +171,7 @@ public class RetryingCaller extends CallerDecorator {
       if (continueLoop) retryCounter.incrementAndGet();
     } while (continueLoop);
 
-    Throwable lastRetriedException = Iterables.getLast(exceptions);
+    Exception lastRetriedException = Iterables.getLast(exceptions);
     if (debug) {
       if (!exceptions.isEmpty()) {
         LOG.warning(
@@ -186,18 +187,19 @@ public class RetryingCaller extends CallerDecorator {
     return null;
   }
 
-  private boolean isRetryable(Throwable throwable) {
-    return isRetryable.getUnchecked(throwable.getClass());
+  // avadh: changed 'Throwable' to 'Exception', added throws ExecutionException
+  private boolean isRetryable(Exception throwable) throws ExecutionException {
+		return isRetryable.get(throwable.getClass());
   }
 
-  private final LoadingCache<Class<? extends Throwable>, Boolean> isRetryable =
-      CacheBuilder.newBuilder().build(new CacheLoader<Class<? extends Throwable>, Boolean>() {
-        @Override public Boolean load(Class<? extends Throwable> exceptionClass) {
+  private final LoadingCache<Class<? extends Exception>, Boolean> isRetryable =
+      CacheBuilder.newBuilder().build(new CacheLoader<Class<? extends Exception>, Boolean>() {
+        @Override public Boolean load(Class<? extends Exception> exceptionClass) {
           return isRetryable(exceptionClass);
         }
       });
 
-  private boolean isRetryable(final Class<? extends Throwable> exceptionClass) {
+  private boolean isRetryable(final Class<? extends Exception> exceptionClass) {
     if (retryableExceptions.contains(exceptionClass)) {
       return true;
     }
@@ -210,16 +212,16 @@ public class RetryingCaller extends CallerDecorator {
 
   private static final Joiner STACK_TRACE_JOINER = Joiner.on('\n');
 
-  private static String combineStackTraces(List<Throwable> exceptions) {
+  private static String combineStackTraces(final List<Exception> exceptions) {
     if (exceptions.isEmpty()) {
       return "none";
     } else {
       return STACK_TRACE_JOINER.join(Iterables.transform(exceptions,
-          new Function<Throwable, String>() {
+          new Function<Exception, String>() {
             private int index = 1;
-            @Override public String apply(Throwable exception) {
+            @Override public String apply(Exception exception) {
               return String.format("[%d] %s",
-                  index++, Throwables.getStackTraceAsString(exception));
+                  index++, exceptions.toString());
             }
           }));
     }
